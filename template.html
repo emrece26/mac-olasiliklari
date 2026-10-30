@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maç Olasılıkları</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Yön: lacivert-sarı çubuklu tribün; ev sahibi lacivert, deplasman sarı */
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --ink: #101a3f;
+  --muted: #5a6385;
+  --line: #dde2ef;
+  --home: #1b2f6e;
+  --draw: #9aa1b8;
+  --away: #f2bf00;
+  --away-ink: #8c6b00;
+  --navy: #0f1b45;
+  --yellow: #ffd200;
+  --heat: 27, 47, 110;
+  --heat-fg: #ffffff;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1230; --surface: #111b42; --ink: #eef1fa; --muted: #9aa3c4; --line: #24305e;
+    --home: #ffd200; --draw: #6f7898; --away: #7f9cf5; --away-ink: #a9bcff; --navy: #070e28;
+    --heat: 255, 210, 0; --heat-fg: #101a3f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1230; --surface: #111b42; --ink: #eef1fa; --muted: #9aa3c4; --line: #24305e;
+  --home: #ffd200; --draw: #6f7898; --away: #7f9cf5; --away-ink: #a9bcff; --navy: #070e28;
+  --heat: 255, 210, 0; --heat-fg: #101a3f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 24px 20px 48px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h1 { font-size: 40px; line-height: 1; text-transform: uppercase; }
+h2 { font-size: 22px; text-transform: uppercase; }
+h3 { font-size: 15px; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+header {
+  display: grid; gap: 14px; padding: 28px 24px 22px; border-radius: 12px; color: #fff;
+  background:
+    linear-gradient(90deg, var(--navy) 0%, rgba(15, 27, 69, .92) 45%, rgba(15, 27, 69, .55) 100%),
+    repeating-linear-gradient(90deg, var(--navy) 0 38px, var(--yellow) 38px 76px);
+  border-bottom: 6px solid var(--yellow);
+}
+header h1 { color: var(--yellow); }
+header p { margin: 0; color: #d6dcf0; max-width: 65ch; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button {
+  font: 600 16px var(--font-display); text-transform: uppercase; letter-spacing: .04em;
+  padding: 7px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 6px; cursor: pointer;
+}
+.tabs button { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.25); }
+.tabs button[aria-pressed="true"] { background: var(--yellow); color: #0f1b45; border-color: var(--yellow); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--away); outline-offset: 2px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; position: relative; overflow: hidden; }
+.panel::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 5px;
+  background: repeating-linear-gradient(90deg, var(--navy) 0 14px, var(--yellow) 14px 28px);
+}
+.calc { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; }
+.picker { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: end; }
+.picker label { display: grid; gap: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+select {
+  font: 500 15px var(--font-body); padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--ink); width: 100%;
+}
+.swap { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 6px; padding: 9px 11px; cursor: pointer; font-size: 15px; }
+.board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 22px 0 6px; text-align: center; }
+.board .team { font: 600 22px/1.1 var(--font-display); text-transform: uppercase; }
+.board .xg { font: 700 64px/1 var(--font-display); }
+.board .xg.h { color: var(--home); } .board .xg.a { color: var(--away-ink); }
+.board .sep { font: 500 28px var(--font-display); color: var(--muted); }
+.cap { text-align: center; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.bar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; margin: 18px 0 10px; }
+.bar span { display: block; height: 100%; }
+.b1 { background: var(--home); } .bx { background: var(--draw); } .b2 { background: var(--away); }
+.outcomes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.outcome { border-top: 3px solid; padding-top: 6px; }
+.outcome.o1 { border-color: var(--home); } .outcome.ox { border-color: var(--draw); } .outcome.o2 { border-color: var(--away); }
+.outcome .pct { font: 700 34px/1 var(--font-display); }
+.outcome .lab { font-size: 13px; color: var(--muted); }
+.outcome .odd { font-size: 13px; }
+.markets { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 20px; }
+.mk { background: var(--bg); border-radius: 6px; padding: 8px 10px; }
+.mk .k { font-size: 12px; color: var(--muted); }
+.mk .v { font: 600 22px/1.1 var(--font-display); }
+.right { display: grid; gap: 18px; align-content: start; }
+.grid-wrap { overflow-x: auto; }
+table.heat { border-collapse: separate; border-spacing: 3px; margin: 0 auto; }
+table.heat th { font: 600 13px var(--font-display); color: var(--muted); padding: 2px 4px; }
+table.heat td { width: 46px; height: 38px; text-align: center; font-size: 12px; border-radius: 4px; }
+.axis { font-size: 12px; color: var(--muted); text-align: center; }
+.top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.top div { background: var(--bg); border-radius: 6px; padding: 6px 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.top b { font: 700 20px var(--font-display); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.fx { display: grid; gap: 2px; }
+.fx button {
+  display: grid; grid-template-columns: 52px 1fr 92px; gap: 10px; align-items: center; text-align: left;
+  border: 0; background: none; color: var(--ink); padding: 7px 6px; border-radius: 6px; cursor: pointer; font: inherit;
+}
+.fx button:hover { background: var(--bg); }
+.fx .d { font-size: 12px; color: var(--muted); }
+.fx .t { font-size: 14px; line-height: 1.25; }
+.mini { display: flex; height: 8px; border-radius: 3px; overflow: hidden; }
+.mini span { height: 100%; }
+.minip { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; margin-top: 2px; }
+table.st { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.st th { font: 600 12px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; text-align: right; padding: 6px 6px; border-bottom: 1px solid var(--line); }
+table.st td { text-align: right; padding: 6px; border-bottom: 1px solid var(--line); }
+table.st th:nth-child(2), table.st td:nth-child(2) { text-align: left; }
+table.st td.r { color: var(--muted); }
+table.st tr.fb td { background: rgba(255, 210, 0, .16); font-weight: 600; }
+.fx button.fb { box-shadow: inset 4px 0 0 var(--yellow); }
+.pw { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; margin-left: 6px; }
+.tag { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; color: var(--muted); margin-left: 4px; }
+.note { font-size: 13px; color: var(--muted); }
+.note p { max-width: 75ch; }
+.note p { margin: 0 0 8px; }
+.bt { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.bt th, .bt td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+.bt th:first-child, .bt td:first-child { text-align: left; }
+.bt th { color: var(--muted); font-weight: 600; }
+.scroll { overflow-x: auto; }
+@media (max-width: 860px) { .calc, .two { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .board .xg { font-size: 48px; } .outcome .pct { font-size: 28px; } h1 { font-size: 32px; }
+  .picker { grid-template-columns: 1fr; } .swap { justify-self: center; }
+  .top { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Maç Olasılıkları</h1>
+    <p>Geçmiş maç sonuçlarından kurulan istatistiksel modelle iki takım arasındaki maçın olası sonuçları. Lig seçin, takımları belirleyin.</p>
+    <nav class="tabs" id="tabs" aria-label="Lig seçimi"></nav>
+  </header>
+
+  <section class="calc">
+    <div class="panel">
+      <div class="picker">
+        <label for="home">Ev sahibi<select id="home"></select></label>
+        <button class="swap" id="swap" type="button" aria-label="Takımların yerini değiştir">⇄</button>
+        <label for="away">Deplasman<select id="away"></select></label>
+      </div>
+      <div class="board">
+        <div><div class="xg h num" id="xgH">–</div><div class="team" id="nH"></div></div>
+        <div class="sep">:</div>
+        <div><div class="xg a num" id="xgA">–</div><div class="team" id="nA"></div></div>
+      </div>
+      <div class="cap">Beklenen gol sayısı</div>
+      <div class="bar" id="bar"></div>
+      <div class="outcomes" id="outcomes"></div>
+      <div class="markets" id="markets"></div>
+    </div>
+    <div class="panel right">
+      <div>
+        <h3>Skor olasılıkları</h3>
+        <div class="grid-wrap" id="heat"></div>
+        <div class="axis">Satır: ev sahibi golü · Sütun: deplasman golü</div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:8px">En olası skorlar</h3>
+        <div class="top" id="top"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div class="panel">
+      <div class="sec-head"><h2>Sıradaki maçlar</h2><span class="muted" style="font-size:12px">Tıklayınca yukarıda açılır</span></div>
+      <div class="fx" id="fx"></div>
+      <p class="note" id="fxnote" style="margin-top:10px"></p>
+    </div>
+    <div class="panel">
+      <div class="sec-head"><h2>Takım güçleri</h2><span class="muted" style="font-size:12px">Ortalama rakibe karşı, tarafsız sahada</span></div>
+      <div class="scroll"><table class="st" id="st"></table></div>
+    </div>
+  </section>
+
+  <section class="panel note">
+    <h2 style="color:var(--ink);margin-bottom:8px">Model nasıl çalışıyor</h2>
+    <p>Her takıma bir hücum ve bir savunma gücü verilir. Bir maçta atılacak gol sayısı bu güçlerden, ligin gol ortalamasından ve ev sahibi avantajından hesaplanan bir Poisson dağılımına uyar. Düşük skorlu sonuçlar (0-0, 1-0, 0-1, 1-1) için Dixon-Coles düzeltmesi uygulanır. Yakın tarihli maçlar eski maçlardan daha ağır basar; son üç yılın maçları kullanılır.</p>
+    <p>Aşağıdaki tablo, modelin her maçı yalnızca o maçtan önceki verilerle tahmin ettiği geriye dönük testin sonucudur. Karşılaştırma tabanı, her maça ligin genel ev/beraberlik/deplasman oranlarını veren basit tahmindir. Log-kayıp ve RPS ne kadar düşükse o kadar iyidir.</p>
+    <div class="scroll"><table class="bt num" id="bt"></table></div>
+    <p style="margin-top:10px" id="src"></p>
+  </section>
+</div>
+
+<script>
+const D = __DATA__;
+const ORDER = ["SUPERLIG", "EPL", "LALIGA", "SERIEA", "BUNDESLIGA", "LIGUE1"].filter(k => D[k]);
+const SLUG = { SUPERLIG: "super-lig", EPL: "premier-lig", LALIGA: "la-liga", SERIEA: "serie-a", BUNDESLIGA: "bundesliga", LIGUE1: "ligue-1" };
+const N = 10;
+const FACT = [1]; for (let i = 1; i <= N; i++) FACT[i] = FACT[i - 1] * i;
+const $ = id => document.getElementById(id);
+const pct = p => (p * 100).toFixed(p >= 0.995 || p < 0.1 ? 1 : 0).replace(".", ",") + "%";
+const pctTxt = p => "%" + (p * 100).toFixed(0);
+const dec = (x, k = 2) => x.toFixed(k).replace(".", ",");
+const MONTHS = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+const fmtDate = s => { const [y, m, d] = s.split("-").map(Number); return d + " " + MONTHS[m - 1]; };
+const fmtLong = s => { const [y, m, d] = s.split("-").map(Number); return d + " " + MONTHS[m - 1] + " " + y; };
+
+let L = null, lgKey = null;
+
+function model(lg, h, a) {
+  const th = lg.teams[h], ta = lg.teams[a];
+  const lam = Math.exp(lg.mu + lg.home + th.a + ta.d);
+  const nu = Math.exp(lg.mu + ta.a + th.d);
+  const ph = [], pa = [];
+  for (let k = 0; k <= N; k++) { ph[k] = Math.exp(-lam) * lam ** k / FACT[k]; pa[k] = Math.exp(-nu) * nu ** k / FACT[k]; }
+  const M = []; let s = 0; const r = lg.rho;
+  for (let i = 0; i <= N; i++) { M[i] = []; for (let j = 0; j <= N; j++) {
+    let v = ph[i] * pa[j];
+    if (i === 0 && j === 0) v *= 1 - lam * nu * r;
+    else if (i === 0 && j === 1) v *= 1 + lam * r;
+    else if (i === 1 && j === 0) v *= 1 + nu * r;
+    else if (i === 1 && j === 1) v *= 1 - r;
+    M[i][j] = v; s += v; } }
+  let p1 = 0, px = 0, p2 = 0, btts = 0; const over = { 1.5: 0, 2.5: 0, 3.5: 0 };
+  for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) {
+    const v = M[i][j] /= s;
+    if (i > j) p1 += v; else if (i === j) px += v; else p2 += v;
+    if (i > 0 && j > 0) btts += v;
+    for (const t in over) if (i + j > t) over[t] += v;
+  }
+  return { lam, nu, M, p1, px, p2, btts, over };
+}
+
+function renderTabs() {
+  $("tabs").innerHTML = ORDER.map(k => `<button type="button" data-k="${k}" aria-pressed="${k === lgKey}">${D[k].name}</button>`).join("");
+  $("tabs").querySelectorAll("button").forEach(b => b.onclick = () => { location.hash = SLUG[b.dataset.k]; });
+}
+
+function teamsSorted() {
+  return Object.keys(L.teams).sort((x, y) => x.localeCompare(y, "tr"));
+}
+
+function setLeague(k, h, a) {
+  lgKey = k; L = D[k];
+  renderTabs();
+  const names = teamsSorted();
+  const opts = names.map(n => `<option value="${n}">${n}</option>`).join("");
+  $("home").innerHTML = opts; $("away").innerHTML = opts;
+  const f = L.fixtures.find(x => x[1] === "Fenerbahçe" || x[2] === "Fenerbahçe") || L.fixtures[0];
+  $("home").value = h || (f ? f[1] : names[0]);
+  $("away").value = a || (f ? f[2] : names[1]);
+  renderFixtures(); renderTable(); calc();
+}
+
+function calc() {
+  const h = $("home").value, a = $("away").value;
+  $("nH").textContent = h; $("nA").textContent = a;
+  if (h === a) {
+    $("xgH").textContent = "–"; $("xgA").textContent = "–";
+    $("bar").innerHTML = ""; $("outcomes").innerHTML = `<p class="muted" style="grid-column:1/-1">İki farklı takım seçin.</p>`;
+    $("markets").innerHTML = ""; $("heat").innerHTML = ""; $("top").innerHTML = ""; return;
+  }
+  const m = model(L, h, a);
+  $("xgH").textContent = dec(m.lam); $("xgA").textContent = dec(m.nu);
+  $("bar").innerHTML = `<span class="b1" style="width:${m.p1 * 100}%"></span><span class="bx" style="width:${m.px * 100}%"></span><span class="b2" style="width:${m.p2 * 100}%"></span>`;
+  const o = (cls, lab, p) => `<div class="outcome ${cls}"><div class="pct num">${pctTxt(p)}</div><div class="lab">${lab}</div><div class="odd num">Adil oran ${dec(1 / p)}</div></div>`;
+  $("outcomes").innerHTML = o("o1", "1 · " + h + " kazanır", m.p1) + o("ox", "X · Beraberlik", m.px) + o("o2", "2 · " + a + " kazanır", m.p2);
+  const mk = (k, v) => `<div class="mk"><div class="k">${k}</div><div class="v num">${pctTxt(v)}</div></div>`;
+  $("markets").innerHTML =
+    mk("2,5 Üst", m.over[2.5]) + mk("2,5 Alt", 1 - m.over[2.5]) + mk("1,5 Üst", m.over[1.5]) + mk("3,5 Üst", m.over[3.5]) +
+    mk("KG Var", m.btts) + mk("KG Yok", 1 - m.btts) + mk("Çifte şans 1X", m.p1 + m.px) + mk("Çifte şans X2", m.px + m.p2);
+  // ısı haritası
+  const S = 5; let mx = 0;
+  for (let i = 0; i <= S; i++) for (let j = 0; j <= S; j++) mx = Math.max(mx, m.M[i][j]);
+  let t = `<table class="heat num"><tr><th></th>${[...Array(S + 1).keys()].map(j => `<th>${j}</th>`).join("")}</tr>`;
+  for (let i = 0; i <= S; i++) {
+    t += `<tr><th>${i}</th>`;
+    for (let j = 0; j <= S; j++) {
+      const v = m.M[i][j], al = v / mx;
+      // en düşük olasılık kırmızı (ton 0), en yüksek yeşil (ton 125)
+      const hue = Math.round(125 * al);
+      t += `<td title="${h} ${i} - ${j} ${a}: ${pct(v)}" style="background:hsl(${hue},68%,58%);color:#13181f">${(v * 100).toFixed(1).replace(".", ",")}</td>`;
+    }
+    t += "</tr>";
+  }
+  $("heat").innerHTML = t + "</table>";
+  const all = [];
+  for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) all.push([i, j, m.M[i][j]]);
+  all.sort((x, y) => y[2] - x[2]);
+  $("top").innerHTML = all.slice(0, 6).map(([i, j, v]) => `<div><b class="num">${i}-${j}</b><span class="num muted">${pct(v)}</span></div>`).join("");
+}
+
+function renderFixtures() {
+  if (!L.fixtures.length) { $("fx").innerHTML = `<p class="muted">Bu lig için açıklanmış yakın tarihli maç yok. Yukarıdan istediğiniz iki takımı seçebilirsiniz.</p>`; $("fxnote").textContent = ""; return; }
+  $("fx").innerHTML = L.fixtures.map(([d, h, a, tm, approx]) => {
+    const m = model(L, h, a);
+    const when = approx
+      ? `<span class="d num" title="Kesin gün açıklanmadı; haftanın son günü gösteriliyor">≈ ${fmtDate(d)}</span>`
+      : `<span class="d num">${fmtDate(d)}${tm ? "<br>" + tm : ""}</span>`;
+    return `<button type="button" class="${h === "Fenerbahçe" || a === "Fenerbahçe" ? "fb" : ""}" data-h="${h}" data-a="${a}">
+      ${when}
+      <span class="t">${h}<br><span class="muted">${a}</span></span>
+      <span><span class="mini"><span class="b1" style="width:${m.p1 * 100}%"></span><span class="bx" style="width:${m.px * 100}%"></span><span class="b2" style="width:${m.p2 * 100}%"></span></span>
+      <span class="minip num"><span>${pctTxt(m.p1)}</span><span>${pctTxt(m.px)}</span><span>${pctTxt(m.p2)}</span></span></span>
+    </button>`;
+  }).join("");
+  $("fx").querySelectorAll("button").forEach(b => b.onclick = () => {
+    $("home").value = b.dataset.h; $("away").value = b.dataset.a; calc();
+    window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+  $("fxnote").textContent = `Model ${fmtLong(L.ref)} tarihine kadar oynanan maçları biliyor. Saatler Türkiye saatidir.`;
+}
+
+function renderTable() {
+  const rows = Object.entries(L.teams).map(([n, t]) => {
+    const gf = Math.exp(L.mu + t.a), ga = Math.exp(L.mu + t.d);
+    const pts = t.st[1] * 3 + t.st[2];
+    return { n, gf, ga, g: gf - ga, o: t.st[0], pts, nw: t.new };
+  }).sort((x, y) => y.g - x.g);
+  const mx = Math.max(...rows.map(r => Math.abs(r.g)));
+  $("st").innerHTML = `<tr><th>#</th><th>Takım</th><th title="Bu sezon oynanan maç">O</th><th title="Bu sezon puan">P</th><th title="Beklenen attığı gol / maç">Atar</th><th title="Beklenen yediği gol / maç">Yer</th><th title="Beklenen averaj / maç">Güç</th></tr>` +
+    rows.map((r, i) => `<tr class="${r.n === "Fenerbahçe" ? "fb" : ""}"><td class="r num">${i + 1}</td><td>${r.n}${r.nw ? '<span class="tag" title="Geçmiş verisi az; yükselen takım varsayımıyla başlatıldı">Yeni</span>' : ""}</td>
+      <td class="num">${r.o}</td><td class="num">${r.pts}</td><td class="num">${dec(r.gf)}</td><td class="num">${dec(r.ga)}</td>
+      <td class="num">${(r.g >= 0 ? "+" : "−") + dec(Math.abs(r.g))}<span class="pw" style="width:${Math.round(34 * Math.abs(r.g) / mx)}px;background:${r.g >= 0 ? "var(--home)" : "var(--away)"}"></span></td></tr>`).join("");
+}
+
+function renderFooter() {
+  $("bt").innerHTML = `<tr><th>Lig</th><th>Test sezonu</th><th>Maç</th><th>Doğru tahmin</th><th>Taban</th><th>Log-kayıp</th><th>Taban</th><th>RPS</th><th>Taban</th></tr>` +
+    ORDER.filter(k => D[k].bt).map(k => { const b = D[k].bt; return `<tr><td>${D[k].name}</td><td>${D[k].btSeason}</td><td>${b.n}</td><td>${pct(b.acc)}</td><td>${pct(b.acc_base)}</td><td>${dec(b.logloss, 3)}</td><td>${dec(b.logloss_base, 3)}</td><td>${dec(b.rps, 3)}</td><td>${dec(b.rps_base, 3)}</td></tr>`; }).join("");
+  const u = D[ORDER[0]].updated;
+  $("src").innerHTML = `Veri: <a href="https://www.football-data.co.uk" style="color:var(--home)">football-data.co.uk</a>. Site her hafta otomatik güncellenir; son güncelleme ${fmtLong(u.slice(0, 10))} ${u.slice(11)}. Olasılıklar yalnızca skorlara dayanır; sakatlık, kadro ve transfer bilgisi içermez.`;
+}
+
+function route() {
+  const s = location.hash.slice(1);
+  const k = ORDER.find(k => SLUG[k] === s) || "SUPERLIG";
+  if (k !== lgKey) setLeague(k);
+}
+$("home").onchange = calc; $("away").onchange = calc;
+$("swap").onclick = () => { const h = $("home").value; $("home").value = $("away").value; $("away").value = h; calc(); };
+window.addEventListener("hashchange", route);
+renderFooter(); route();
+</script>
+</body>
+</html>
