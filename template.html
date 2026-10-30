@@ -129,6 +129,7 @@ table.st td.r { color: var(--muted); }
 table.st tr.fb td { background: rgba(255, 210, 0, .16); font-weight: 600; }
 .fx button.fb { box-shadow: inset 4px 0 0 var(--yellow); }
 .pw { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; margin-left: 6px; }
+.flag { width: 1.1em; height: auto; vertical-align: -0.12em; margin-left: .3em; border-radius: 2px; }
 .tag { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; color: var(--muted); margin-left: 4px; }
 .note { font-size: 13px; color: var(--muted); }
 .note p { max-width: 75ch; }
@@ -219,6 +220,14 @@ const MONTHS = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl",
 const fmtDate = s => { const [y, m, d] = s.split("-").map(Number); return d + " " + MONTHS[m - 1]; };
 const fmtLong = s => { const [y, m, d] = s.split("-").map(Number); return d + " " + MONTHS[m - 1] + " " + y; };
 
+// Görünen takım adları: veri anahtarı aynı kalır, yalnızca ekranda farklı yazılır
+const FLAG_TR = `<svg class="flag" viewBox="0 0 30 20" aria-label="Türk bayrağı" role="img"><rect width="30" height="20" fill="#e30a17"/><circle cx="11" cy="10" r="5" fill="#fff"/><circle cx="12.25" cy="10" r="4" fill="#e30a17"/><polygon fill="#fff" points="18.2,10 15.85,10.76 15.85,8.29 17.3,10.29 17.3,7.97" transform="rotate(18 16.6 10)"/></svg>`;
+const DISPLAY = {
+  "Amedspor": { html: `<s>Amed</s>spor ${FLAG_TR}`, text: "A\u0336m\u0336e\u0336d\u0336spor" },
+};
+const nameHTML = n => DISPLAY[n] ? DISPLAY[n].html : n;
+const nameTxt = n => DISPLAY[n] ? DISPLAY[n].text : n;
+
 let L = null, lgKey = null;
 
 function model(lg, h, a) {
@@ -258,7 +267,7 @@ function setLeague(k, h, a) {
   lgKey = k; L = D[k];
   renderTabs();
   const names = teamsSorted();
-  const opts = names.map(n => `<option value="${n}">${n}</option>`).join("");
+  const opts = names.map(n => `<option value="${n}">${nameTxt(n)}</option>`).join("");
   $("home").innerHTML = opts; $("away").innerHTML = opts;
   const f = L.fixtures.find(x => x[1] === "Fenerbahçe" || x[2] === "Fenerbahçe") || L.fixtures[0];
   $("home").value = h || (f ? f[1] : names[0]);
@@ -268,7 +277,7 @@ function setLeague(k, h, a) {
 
 function calc() {
   const h = $("home").value, a = $("away").value;
-  $("nH").textContent = h; $("nA").textContent = a;
+  $("nH").innerHTML = nameHTML(h); $("nA").innerHTML = nameHTML(a);
   if (h === a) {
     $("xgH").textContent = "–"; $("xgA").textContent = "–";
     $("bar").innerHTML = ""; $("outcomes").innerHTML = `<p class="muted" style="grid-column:1/-1">İki farklı takım seçin.</p>`;
@@ -278,7 +287,7 @@ function calc() {
   $("xgH").textContent = dec(m.lam); $("xgA").textContent = dec(m.nu);
   $("bar").innerHTML = `<span class="b1" style="width:${m.p1 * 100}%"></span><span class="bx" style="width:${m.px * 100}%"></span><span class="b2" style="width:${m.p2 * 100}%"></span>`;
   const o = (cls, lab, p) => `<div class="outcome ${cls}"><div class="pct num">${pctTxt(p)}</div><div class="lab">${lab}</div><div class="odd num">Adil oran ${dec(1 / p)}</div></div>`;
-  $("outcomes").innerHTML = o("o1", "1 · " + h + " kazanır", m.p1) + o("ox", "X · Beraberlik", m.px) + o("o2", "2 · " + a + " kazanır", m.p2);
+  $("outcomes").innerHTML = o("o1", "1 · " + nameHTML(h) + " kazanır", m.p1) + o("ox", "X · Beraberlik", m.px) + o("o2", "2 · " + nameHTML(a) + " kazanır", m.p2);
   const mk = (k, v) => `<div class="mk"><div class="k">${k}</div><div class="v num">${pctTxt(v)}</div></div>`;
   $("markets").innerHTML =
     mk("2,5 Üst", m.over[2.5]) + mk("2,5 Alt", 1 - m.over[2.5]) + mk("1,5 Üst", m.over[1.5]) + mk("3,5 Üst", m.over[3.5]) +
@@ -293,7 +302,7 @@ function calc() {
       const v = m.M[i][j], al = v / mx;
       // en düşük olasılık kırmızı (ton 0), en yüksek yeşil (ton 125)
       const hue = Math.round(125 * al);
-      t += `<td title="${h} ${i} - ${j} ${a}: ${pct(v)}" style="background:hsl(${hue},68%,58%);color:#13181f">${(v * 100).toFixed(1).replace(".", ",")}</td>`;
+      t += `<td title="${nameTxt(h)} ${i} - ${j} ${nameTxt(a)}: ${pct(v)}" style="background:hsl(${hue},68%,58%);color:#13181f">${(v * 100).toFixed(1).replace(".", ",")}</td>`;
     }
     t += "</tr>";
   }
@@ -313,7 +322,7 @@ function renderFixtures() {
       : `<span class="d num">${fmtDate(d)}${tm ? "<br>" + tm : ""}</span>`;
     return `<button type="button" class="${h === "Fenerbahçe" || a === "Fenerbahçe" ? "fb" : ""}" data-h="${h}" data-a="${a}">
       ${when}
-      <span class="t">${h}<br><span class="muted">${a}</span></span>
+      <span class="t">${nameHTML(h)}<br><span class="muted">${nameHTML(a)}</span></span>
       <span><span class="mini"><span class="b1" style="width:${m.p1 * 100}%"></span><span class="bx" style="width:${m.px * 100}%"></span><span class="b2" style="width:${m.p2 * 100}%"></span></span>
       <span class="minip num"><span>${pctTxt(m.p1)}</span><span>${pctTxt(m.px)}</span><span>${pctTxt(m.p2)}</span></span></span>
     </button>`;
@@ -333,7 +342,7 @@ function renderTable() {
   }).sort((x, y) => y.g - x.g);
   const mx = Math.max(...rows.map(r => Math.abs(r.g)));
   $("st").innerHTML = `<tr><th>#</th><th>Takım</th><th title="Bu sezon oynanan maç">O</th><th title="Bu sezon puan">P</th><th title="Beklenen attığı gol / maç">Atar</th><th title="Beklenen yediği gol / maç">Yer</th><th title="Beklenen averaj / maç">Güç</th></tr>` +
-    rows.map((r, i) => `<tr class="${r.n === "Fenerbahçe" ? "fb" : ""}"><td class="r num">${i + 1}</td><td>${r.n}${r.nw ? '<span class="tag" title="Geçmiş verisi az; yükselen takım varsayımıyla başlatıldı">Yeni</span>' : ""}</td>
+    rows.map((r, i) => `<tr class="${r.n === "Fenerbahçe" ? "fb" : ""}"><td class="r num">${i + 1}</td><td>${nameHTML(r.n)}${r.nw ? '<span class="tag" title="Geçmiş verisi az; yükselen takım varsayımıyla başlatıldı">Yeni</span>' : ""}</td>
       <td class="num">${r.o}</td><td class="num">${r.pts}</td><td class="num">${dec(r.gf)}</td><td class="num">${dec(r.ga)}</td>
       <td class="num">${(r.g >= 0 ? "+" : "−") + dec(Math.abs(r.g))}<span class="pw" style="width:${Math.round(34 * Math.abs(r.g) / mx)}px;background:${r.g >= 0 ? "var(--home)" : "var(--away)"}"></span></td></tr>`).join("");
 }
