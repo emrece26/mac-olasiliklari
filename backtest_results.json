@@ -2,6 +2,7 @@
   "EPL": {
     "xi": 0.002,
     "reg": 0.5,
+    "season": "2025-26",
     "n": 380.0,
     "logloss": 1.0233,
     "logloss_base": 1.0843,
@@ -13,10 +14,11 @@
   "LALIGA": {
     "xi": 0.001,
     "reg": 5.0,
+    "season": "2025-26",
     "n": 380.0,
-    "logloss": 0.9819,
-    "logloss_base": 1.0485,
-    "rps": 0.2015,
+    "logloss": 0.9805,
+    "logloss_base": 1.0486,
+    "rps": 0.2011,
     "rps_base": 0.2232,
     "acc": 0.5289,
     "acc_base": 0.4895
@@ -24,17 +26,19 @@
   "SERIEA": {
     "xi": 0.001,
     "reg": 0.5,
+    "season": "2025-26",
     "n": 380.0,
-    "logloss": 0.9985,
-    "logloss_base": 1.091,
-    "rps": 0.2026,
-    "rps_base": 0.234,
-    "acc": 0.5105,
+    "logloss": 0.998,
+    "logloss_base": 1.09,
+    "rps": 0.2024,
+    "rps_base": 0.2338,
+    "acc": 0.5132,
     "acc_base": 0.3895
   },
   "BUNDESLIGA": {
     "xi": 0.001,
     "reg": 5.0,
+    "season": "2025-26",
     "n": 306.0,
     "logloss": 0.973,
     "logloss_base": 1.071,
@@ -46,23 +50,25 @@
   "LIGUE1": {
     "xi": 0.001,
     "reg": 5.0,
-    "n": 305.0,
-    "logloss": 1.0009,
-    "logloss_base": 1.0646,
-    "rps": 0.2079,
-    "rps_base": 0.2296,
-    "acc": 0.5049,
-    "acc_base": 0.4623
+    "season": "2025-26",
+    "n": 306.0,
+    "logloss": 0.9988,
+    "logloss_base": 1.0658,
+    "rps": 0.2067,
+    "rps_base": 0.2293,
+    "acc": 0.5163,
+    "acc_base": 0.4608
   },
   "SUPERLIG": {
-    "xi": 0.001,
+    "xi": 0.002,
     "reg": 2.0,
+    "season": "2025-26",
     "n": 306.0,
-    "logloss": 0.9933,
-    "logloss_base": 1.0866,
-    "rps": 0.1943,
+    "logloss": 0.996,
+    "logloss_base": 1.089,
+    "rps": 0.1949,
     "rps_base": 0.2254,
-    "acc": 0.5,
+    "acc": 0.5098,
     "acc_base": 0.4216
   }
 }
